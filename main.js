@@ -1,29 +1,27 @@
 const fs = require('fs');
 
-// Зчитуємо JSON дані з файлу
-fs.readFile('data.json', 'utf8', (err, data) => {
-    if (err) {
-        console.error('Помилка читання файлу data.json:', err);
-        return;
+try {
+    const rawData = fs.readFileSync('data.json', 'utf8');
+    const jsonData = JSON.parse(rawData);
+
+    if (!Array.isArray(jsonData)) {
+        throw new Error('Data is not an array.');
     }
 
-    try {
-        const jsonData = JSON.parse(data);
+    const filteredValues = jsonData
+        .filter(entry => {
+            const ku = parseFloat(entry.ku);
+            const value = parseFloat(entry.value);
+            return !isNaN(ku) && !isNaN(value) && ku === 13 && value > 5;
+        })
+        .map(entry => entry.value);
 
-        // Фільтруємо дані за умовами: ku === 13 і індекс більший за 5
-        const filteredData = jsonData.filter(entry => entry.ku === 13 && parseFloat(entry.value) > 5);
-
-        // Створюємо рядок з відфільтрованими значеннями і записуємо його у файл output.txt
-        const outputText = filteredData.map(entry => parseFloat(entry.value).toFixed(1)).join('\n');
-
-        fs.writeFile('output.txt', outputText, 'utf8', err => {
-            if (err) {
-                console.error('Помилка запису у файл output.txt:', err);
-            } else {
-                console.log('Результати збережено у файл output.txt');
-            }
-        });
-    } catch (jsonError) {
-        console.error('Помилка обробки JSON:', jsonError);
+    if (filteredValues.length > 0) {
+        const outputFilename = 'output.txt';
+        fs.writeFileSync(outputFilename, filteredValues.join('\n'), 'utf8');
+    } else {
+        console.log('No matching entries found.');
     }
-});
+} catch (error) {
+    console.error('An error occurred:', error.message);
+}
